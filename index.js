@@ -6,26 +6,46 @@ var {
   View,
   Animated,
   ScrollView,
+  Platform,
 } = React;
 
 var DefaultTabBar = require('./DefaultTabBar');
 var deviceWidth = Dimensions.get('window').width;
 
+
 var ScrollableTabView = React.createClass({
   getInitialState() {
-    return { currentPage: 0, pan: new Animated.Value(0) };
+    return {
+      currentPage: 0,
+      pan: new Animated.Value(0)
+    };
   },
 
   componentWillMount() {
     this.state.pan.addListener(({value}) => {
-      var pageNumber = Math.round(Math.max(0, Math.min(value / deviceWidth, this.props.children.length - 1)));
+      var pageNumber = Math.round(
+        Math.max(
+          0,
+          Math.min(value / deviceWidth, this.props.children.length - 1)
+        )
+      );
+
+      // Android hack as ScrollView.pagingEnabled is not supported yet
+      if (
+        Platform.OS === 'android' &&
+        this.state.currentPage != pageNumber &&
+        value % deviceWidth != 0
+      ) {
+        this.refs.scrollView.scrollTo(null, pageNumber * deviceWidth);
+      }
 
       this.setState({
         currentPage: pageNumber
       });
 
       this.props.onChangeTab && this.props.onChangeTab({
-        i: pageNumber, ref: this.props.children[pageNumber]
+        i: pageNumber,
+        ref: this.props.children[pageNumber]
       });
     });
   },
@@ -46,7 +66,8 @@ var ScrollableTabView = React.createClass({
 
   render() {
     var scrollValue = this.state.pan.interpolate({
-      inputRange: [0, deviceWidth * this.props.children.length], outputRange: [0, this.props.children.length]
+      inputRange: [0, deviceWidth * this.props.children.length],
+      outputRange: [0, this.props.children.length]
     });
 
     return (
